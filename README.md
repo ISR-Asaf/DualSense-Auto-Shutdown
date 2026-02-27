@@ -35,12 +35,13 @@ If you want to run the raw Python script or compile it yourself:
 2. Install the required libraries:
    `pip install -r requirements.txt`
 3. Run the script:
-   `python dualsense_off.pyw`
+   `python dualsense_auto_shutdown.pyw`
 
 ## 🛠️ Building the .exe
 To compile the standalone executable using PyInstaller:
 
 `python -m PyInstaller --noconsole --onefile --icon=app_icon.ico dualsense_auto_shutdown.pyw`
+
 
 
 
