@@ -4,6 +4,7 @@ A lightweight, modern Windows utility that automatically shuts down connected Pl
 
 ## ✨ Features
 <img width="412" height="688" alt="ui_preview" src="https://github.com/user-attachments/assets/03e9bcf3-ec6a-4534-b683-387bb1d9db4f" />
+<img width="310" height="408" alt="drag" src="https://github.com/user-attachments/assets/ceeaf56c-0f0b-4c36-b97e-1fa6c311bc64" />
 
 * **Auto-Idle Shutdown: Set a custom timer to turn off your controller when you step away.
 * **Manual Quick-Shutdown: Hold the 'START' (Options) button for a custom number of seconds to instantly kill the power.
@@ -37,6 +38,7 @@ If you want to run the raw Python script or compile it yourself:
 To compile the standalone executable using PyInstaller:
 
 `python -m PyInstaller --noconsole --onefile --icon=app_icon.ico dualsense_off.pyw`
+
 
 
 
