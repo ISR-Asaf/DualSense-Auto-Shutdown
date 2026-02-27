@@ -4,8 +4,8 @@ A lightweight, Windows utility that automatically shuts down connected PlayStati
 
 ## ✨ Features
 <img width="412" height="688" alt="ui_preview" src="https://github.com/user-attachments/assets/03e9bcf3-ec6a-4534-b683-387bb1d9db4f" />
+![drag_preview](https://github.com/user-attachments/assets/82d9f065-9f45-4047-a4d0-289ece055a9a)
 
-![drag_preview](https://github.com/user-attachments/assets/f262f64f-178b-4438-b3fa-a91855baf1ad)
 
 
 * **Auto-Idle Shutdown: Set a custom timer to turn off your controller when you step away.
@@ -40,6 +40,7 @@ If you want to run the raw Python script or compile it yourself:
 To compile the standalone executable using PyInstaller:
 
 `python -m PyInstaller --noconsole --onefile --icon=app_icon.ico dualsense_auto_shutdown.pyw`
+
 
 
 
