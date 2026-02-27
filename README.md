@@ -37,7 +37,8 @@ If you want to run the raw Python script or compile it yourself:
 ## 🛠️ Building the .exe
 To compile the standalone executable using PyInstaller:
 
-`python -m PyInstaller --noconsole --onefile --icon=app_icon.ico dualsense_off.pyw`
+`python -m PyInstaller --noconsole --onefile --icon=app_icon.ico dualsense_auto_shutdown.pyw`
+
 
 
 
