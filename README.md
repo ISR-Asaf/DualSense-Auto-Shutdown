@@ -5,12 +5,13 @@ A lightweight, modern Windows utility that automatically shuts down connected Pl
 ## ✨ Features
 <img width="412" height="688" alt="ui_preview" src="https://github.com/user-attachments/assets/03e9bcf3-ec6a-4534-b683-387bb1d9db4f" />
 
-* **Auto-Idle Shutdown:** Set a custom timer to turn off your controller when you step away.
-* **Manual Quick-Shutdown:** Hold the 'START' (Options) button for a custom amount of seconds to instantly kill the power.
-* **Multi-Controller Support:** Automatically detects and manages multiple DualSense controllers simultaneously.
-* **Smart Haptic Warning:** Gives a double-pulse vibration warning right before shutting down.
-* **Stick-Drift Protection:** Adjustable deadzone threshold prevents stick-drift from keeping your controller awake.
-* **Run on Startup:** Can automatically launch minimized to the system tray when Windows boots.
+* **Auto-Idle Shutdown: Set a custom timer to turn off your controller when you step away.
+* **Manual Quick-Shutdown: Hold the 'START' (Options) button for a custom number of seconds to instantly kill the power.
+* **Drift Threshold: An adjustable deadzone threshold prevents physical stick drift from keeping your controller awake.
+* **Reset Bluetooth Connection: Forcefully disconnects the controller. This is highly helpful when using the application after exiting apps like Steam or the EA app, which tend to hijack the controller's connection.
+* **Run on Startup: Can automatically launch minimized to the system tray when Windows boots.
+* **Multi-Controller Support: Automatically detects and manages multiple DualSense controllers simultaneously.
+* **Smart Haptic Warning: Gives a double-pulse vibration warning right before shutting down.
 
 ## 🚀 Download & Installation (For Regular Users)
 You do not need Python installed to use this program.
@@ -36,4 +37,5 @@ If you want to run the raw Python script or compile it yourself:
 To compile the standalone executable using PyInstaller:
 
 `python -m PyInstaller --noconsole --onefile --icon=app_icon.ico dualsense_off.pyw`
+
 
