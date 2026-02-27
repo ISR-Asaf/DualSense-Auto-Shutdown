@@ -13,7 +13,7 @@ A lightweight, modern Windows utility that automatically shuts down connected Pl
 ## 🚀 Download & Installation (For Regular Users)
 You do not need Python installed to use this program.
 1. Go to the [Releases](../../releases) tab on the right side of this page.
-2. Download the latest `DualSenseAutoShutdown.exe`.
+2. Download the latest `dualsense_auto_shutdown.exe`.
 3. Run the executable. It will appear in your System Tray!
 
 ## 💻 For Developers (Running from Source)
@@ -32,4 +32,5 @@ If you want to run the raw Python script or compile it yourself:
 
 ## 🛠️ Building the .exe
 To compile the standalone executable using PyInstaller:
+
 `python -m PyInstaller --noconsole --onefile --icon=app_icon.ico dualsense_off.pyw`
