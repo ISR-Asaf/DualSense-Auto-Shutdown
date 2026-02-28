@@ -5,6 +5,7 @@ import sys
 import os
 import threading
 import tkinter as tk
+from tkinter import messagebox
 import pystray
 from PIL import Image, ImageDraw
 import binascii
@@ -62,13 +63,32 @@ class ToolTip(object):
         self.widget = widget
         self.text = text
         self.tw = None
+        self.timer = None
         self.widget.bind("<Enter>", self.enter)
         self.widget.bind("<Leave>", self.leave)
+        self.widget.bind("<ButtonPress>", self.leave) # Hides instantly if clicked
 
     def enter(self, event=None):
-        x, y, cx, cy = self.widget.bbox("insert")
-        x += self.widget.winfo_rootx() + 25
-        y += self.widget.winfo_rooty() + 20
+        self.schedule()
+
+    def leave(self, event=None):
+        self.unschedule()
+        self.hide()
+
+    def schedule(self):
+        self.unschedule()
+        self.timer = self.widget.after(400, self.show) # 400ms delay before showing
+
+    def unschedule(self):
+        if self.timer:
+            self.widget.after_cancel(self.timer)
+            self.timer = None
+
+    def show(self):
+        self.unschedule()
+        x = self.widget.winfo_rootx() + 25
+        y = self.widget.winfo_rooty() + self.widget.winfo_height() + 5 # Spawns safely below mouse
+        
         self.tw = tk.Toplevel(self.widget)
         self.tw.wm_overrideredirect(True) 
         self.tw.wm_geometry("+%d+%d" % (x, y))
@@ -77,7 +97,7 @@ class ToolTip(object):
                        relief='flat', padx=10, pady=6, font=("Segoe UI", 9))
         label.pack()
 
-    def leave(self, event=None):
+    def hide(self):
         if self.tw:
             self.tw.destroy()
             self.tw = None
@@ -108,7 +128,8 @@ def toggle_startup(enable):
 
 current_startup_status = check_startup_status()
 if current_startup_status == "FIRST_RUN":
-    toggle_startup(True); is_startup_enabled = True
+    toggle_startup(True)
+    is_startup_enabled = True
 else: is_startup_enabled = current_startup_status
 
 # --- HAPTIC & CORE LOGIC ---
@@ -148,13 +169,13 @@ def force_initial_scan():
     try:
         current_enum = hid.enumerate(VENDOR_ID, PRODUCT_ID)
         for dev_info in current_enum:
-            sn = dev_info['serial_number']
-            if sn and sn not in active_controllers:
+            path = dev_info['path']
+            if path not in active_controllers:
                 try:
                     dev = hid.device()
-                    dev.open_path(dev_info['path'])
+                    dev.open_path(path)
                     dev.set_nonblocking(True)
-                    active_controllers[sn] = {'device': dev, 'last_active': time.time(), 'start_pressed': None}
+                    active_controllers[path] = {'device': dev, 'sn': dev_info.get('serial_number', ''), 'last_active': time.time(), 'start_pressed': None}
                 except: pass
     except: pass
 
@@ -164,27 +185,29 @@ def monitor_system():
         if time.time() - last_scan_time > 2.0:
             try:
                 current_enum = hid.enumerate(VENDOR_ID, PRODUCT_ID)
-                current_serials = [d['serial_number'] for d in current_enum if d['serial_number']]
+                # Tracking by PATH guarantees multiple controllers are detected even if Windows hides the serial number
+                current_paths = [d['path'] for d in current_enum]
                 for dev_info in current_enum:
-                    sn = dev_info['serial_number']
-                    if sn and sn not in active_controllers:
+                    path = dev_info['path']
+                    if path not in active_controllers:
                         try:
                             dev = hid.device()
-                            dev.open_path(dev_info['path'])
+                            dev.open_path(path)
                             dev.set_nonblocking(True)
-                            active_controllers[sn] = {'device': dev, 'last_active': time.time(), 'start_pressed': None}
+                            active_controllers[path] = {'device': dev, 'sn': dev_info.get('serial_number', ''), 'last_active': time.time(), 'start_pressed': None}
                             update_status_ui()
                         except: pass
-                disconnected = [sn for sn in active_controllers if sn not in current_serials]
-                for sn in disconnected:
-                    try: active_controllers[sn]['device'].close()
+                
+                disconnected = [p for p in active_controllers if p not in current_paths]
+                for p in disconnected:
+                    try: active_controllers[p]['device'].close()
                     except: pass
-                    del active_controllers[sn]
+                    del active_controllers[p]
                     update_status_ui()
             except Exception: pass
             last_scan_time = time.time()
 
-        for sn, ctrl in list(active_controllers.items()):
+        for path, ctrl in list(active_controllers.items()):
             if config['reset_timer_flag']: ctrl['last_active'] = time.time()
             try:
                 with comms_lock: report = ctrl['device'].read(64)
@@ -198,22 +221,22 @@ def monitor_system():
                         ctrl['last_report'] = report[:]
                     if time.time() - ctrl['last_active'] >= config['idle_timeout']:
                         trigger_vibration(ctrl['device'])
-                        ctrl['device'].close(); disconnect_bluetooth(sn)
-                        del active_controllers[sn]; update_status_ui()
+                        ctrl['device'].close(); disconnect_bluetooth(ctrl['sn'])
+                        del active_controllers[path]; update_status_ui()
                         continue
                     options_down = bool(report[6] & 0x20) if report[0] == 0x01 and len(report) > 6 else False
                     if options_down:
                         if ctrl['start_pressed'] is None: ctrl['start_pressed'] = time.time()
                         elif time.time() - ctrl['start_pressed'] >= config['hold_time']:
                             trigger_vibration(ctrl['device'])
-                            ctrl['device'].close(); disconnect_bluetooth(sn)
-                            del active_controllers[sn]; update_status_ui()
+                            ctrl['device'].close(); disconnect_bluetooth(ctrl['sn'])
+                            del active_controllers[path]; update_status_ui()
                             continue
                     else: ctrl['start_pressed'] = None
             except IOError:
                 try: ctrl['device'].close()
                 except: pass
-                del active_controllers[sn]; update_status_ui()
+                del active_controllers[path]; update_status_ui()
         config['reset_timer_flag'] = False
         time.sleep(0.02) 
 
@@ -249,10 +272,10 @@ def save_settings():
 def reset_connections():
     """Actually disconnects the controllers from Windows Bluetooth"""
     with comms_lock:
-        for sn, ctrl in list(active_controllers.items()):
+        for path, ctrl in list(active_controllers.items()):
             try: ctrl['device'].close()
             except: pass
-            disconnect_bluetooth(sn) # Force Bluetooth disconnect
+            disconnect_bluetooth(ctrl['sn']) # Force Bluetooth disconnect
         active_controllers.clear()
     update_status_ui()
     display_ui_message("✓ Bluetooth connections reset", ACCENT_PURPLE)
@@ -281,7 +304,6 @@ if __name__ == "__main__":
     root.resizable(False, False) 
     root.attributes('-toolwindow', True) 
     
-    # Height set to 660 to ensure no buttons are cut off
     window_width, window_height = 420, 660
     screen_width, screen_height = root.winfo_screenwidth(), root.winfo_screenheight()
     center_x, center_y = int((screen_width/2)-(window_width/2)), int((screen_height/2)-(window_height/2))
@@ -321,7 +343,7 @@ if __name__ == "__main__":
     entry_deadzone = create_input("Global Drift Threshold", config['deadzone'], "Higher values ignore stick drift. Recommended: 3")
 
     startup_var = tk.BooleanVar(value=is_startup_enabled)
-    chk_startup = tk.Checkbutton(container, text="Run minimized on startup", variable=startup_var, 
+    chk_startup = tk.Checkbutton(container, text="Run minimized on Windows Startup", variable=startup_var, 
                                  bg=BG_CARD, fg=FG_TEXT, selectcolor=BG_ENTRY, activebackground=BG_CARD, 
                                  activeforeground=FG_TEXT, font=FONT_LABEL, cursor="hand2", bd=0, highlightthickness=0,
                                  command=lambda: toggle_startup(startup_var.get()))
@@ -334,14 +356,14 @@ if __name__ == "__main__":
         if tooltip: ToolTip(btn, tooltip)
         return btn
 
-    create_button("APPLY SETTINGS", ACCENT_BLUE, "#006CC0", save_settings)
+    create_button("APPLY TO ALL DEVICES", ACCENT_BLUE, "#006CC0", save_settings)
     create_button("RESET BLUETOOTH CONNECTION", ACCENT_PURPLE, "#5000BA", reset_connections, 
                   "Forcefully drops the Bluetooth connection to all active controllers.")
 
     ui_message_label = tk.Label(container, text="", font=("Segoe UI", 9, "bold"), bg=BG_CARD, fg=ACCENT_GREEN)
     ui_message_label.pack(pady=(5, 5))
 
-    create_button("EXIT PROGRAM", ACCENT_RED, "#B00000", quit_program)
+    create_button("EXIT PROGRAM COMPLETELY", ACCENT_RED, "#B00000", quit_program)
 
     update_status_ui() 
     root.mainloop()
